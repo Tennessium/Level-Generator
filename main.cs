@@ -58,7 +58,7 @@ class Level {
     Random rnd = new Random();
     this.width = rnd.Next(_width[0], _width[1]);
     this.height = rnd.Next(_height[0], _height[1]);
-    this.resize(rnd.Next(0, 10));
+    this.resize(0);
 
     this.map = new int[this.height][];
     for (int i = 0; i < this.height; i++) {
@@ -189,7 +189,7 @@ class Level {
           this.map[i][j] = 2;
         }
       }
-      
+
     } else {
       int min_w = r1.xr + r1.x;
       if (min_w < r2.x + r2.xr) {
