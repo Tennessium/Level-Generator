@@ -8,7 +8,7 @@ class Room {
   public bool virgin = true;
   public bool is_horizontal = false;
   public int xr = 0, yr = 0, widthr = 0, heightr = 0;
-
+  public int connected_to = 0;
 
   public Room(int[] _width, int[] _height) {
     Random rnd = new Random();
@@ -33,6 +33,17 @@ class Room {
     this.heightr = rnd.Next(Convert.ToInt32(this.height / 1.5), Convert.ToInt32(this.height * (5.0/6.0)));
     this.xr = rnd.Next(0, this.width - this.widthr);
     this.yr = rnd.Next(0, this.height - this.heightr);
+  }
+
+  public void print() {
+    Console.Write("Room x = ");
+    Console.Write(this.x + this.xr);
+    Console.Write("\t room width is ");
+    Console.Write(this.widthr);
+    Console.Write("\t room y = ");
+    Console.Write(this.y + this.yr);
+    Console.Write("\t room height is ");
+    Console.WriteLine(this.heightr);
   }
 }
 
@@ -123,6 +134,8 @@ class Level {
       this.rooms[j].is_horizontal = false;
       this.rooms[j].height = split_h;
       this.add_room(down_room);
+      this.rooms[j].connected_to = this.rooms_count - 1;
+      this.rooms[this.rooms_count - 1].connected_to = j;
     } else {
       int split_w = rnd.Next(Convert.ToInt32(room.width * this.kmin), Convert.ToInt32(room.width * this.kmax));
 
@@ -137,6 +150,8 @@ class Level {
       this.rooms[j].is_horizontal = true;
       this.rooms[j].width = split_w;
       this.add_room(down_room);
+      this.rooms[j].connected_to = this.rooms_count - 1;
+      this.rooms[this.rooms_count - 1].connected_to = j;
     }
   }
 
@@ -144,94 +159,51 @@ class Level {
     room.init_room(rnd);
     for (int i = room.x + room.xr; i < room.x + room.xr + room.widthr; i++) {
       for (int j = room.y + room.yr; j < room.y + room.yr + room.heightr; j++) {
-        this.map[j][i] = -1;
+        this.map[j][i] = 1;
       }
     }
   }
 
   // Это даже не смотрите
   private void build_ends(Random rnd) {
-    for (int i = this.rooms_count - 1; i > 0; i -= 2) {
-      this.connect(this.rooms[i], this.rooms[i-1], rnd);
+    for (int i = 0; i < this.rooms_count; i++) {
+      if (this.rooms[i].connected_to > i) {
+        this.connect(this.rooms[i], this.rooms[this.rooms[i].connected_to], rnd);
+      }
     }
   }
 
-  // И это
   private void connect(Room r1, Room r2, Random rnd) {
-    if (r1.virgin && r2.virgin) {
-      int[][] arr = this.map;
-      for (int i = 0; i < arr[0].Length; i++) {
-        for (int j = 0; j < arr.Length; j++) {
-          arr[j][i] = 0;
-        }
+    if (r1.is_horizontal) { // если комнаты разделены вертикальной линией
+      int min_h = r1.yr + r1.y;
+      if (min_h < r2.y + r2.yr) {
+        min_h = r2.y + r2.yr;
+      }
+      int max_h = r1.yr + r1.y + r1.heightr;
+      if (max_h > r2.y + r2.yr + r2.heightr) {
+        max_h = r2.y + r2.yr + r2.heightr;
       }
 
-      for (int i = r1.x + r1.xr; i < r1.x + r1.xr + r1.widthr; i++) {
-        for (int j = r1.y + r1.yr; j < r1.y + r1.yr + r1.heightr; j++) {
-          arr[j][i] = 1;
+      for (int i = min_h; i < max_h; i++) {
+        for (int j = r1.x + r1.xr + r1.widthr; j < r2.xr + r2.x; j++) {
+          this.map[i][j] = 2;
         }
       }
-
-      for (int i = r2.x + r2.xr; i < r2.x + r2.xr + r2.widthr; i++) {
-        for (int j = r2.y + r2.yr; j < r2.y + r2.yr + r2.heightr; j++) {
-          arr[j][i] = 1;
-        }
+      
+    } else {
+      int min_w = r1.xr + r1.x;
+      if (min_w < r2.x + r2.xr) {
+        min_w = r2.x + r2.xr;
+      }
+      int max_w = r1.x + r1.xr + r1.widthr;
+      if (max_w > r2.x + r2.xr + r2.widthr) {
+        max_w = r2.x + r2.xr + r2.widthr;
       }
 
-      string dir = "";
-      for (int i = r1.yr; i < r1.yr + r1.heightr; i++) {
-        for (int j = r1.xr + r1.widthr; j < arr[0].Length; j++) {
-          if (arr[i][j] == 1) {
-            dir = "right";
-          }
+      for (int i = min_w; i < max_w; i++) {
+        for (int j = r1.y + r1.yr + r1.heightr; j < r2.y + r2.yr; j++) {
+          this.map[j][i] = 2;
         }
-      }
-
-      for (int i = r1.yr; i < r1.yr + r1.heightr; i++) {
-        for (int j = r1.xr; j >= 0; j--) {
-          if (arr[i][j] == 1) {
-            dir = "left";
-          }
-        }
-      }
-
-      for (int i = r1.xr; i < r1.xr + r1.widthr; i++) {
-        for (int j = r1.yr; j >= 0; j--) {
-          if (arr[j][i] == 1) {
-            dir = "up";
-          }
-        }
-      }
-
-      for (int i = r1.xr; i < r1.xr + r1.widthr; i++) {
-        for (int j = r1.yr + r1.heightr; j < arr.Length; j++) {
-          if (arr[j][i] == 1) {
-            dir = "down";
-          }
-        }
-      }
-      Console.WriteLine(dir);
-      if (dir == "") {
-
-      } else if (dir == "right") {
-        int ymax = r2.yr, ymin = r2.yr + r2.heightr;
-        //ВЫСОТА ПРОХОДА
-        while (ymin - ymax > 10) {
-          ymin--;
-          ymax++;
-        }
-        if (r1.yr > r2.yr)
-          ymax = r1.yr;
-        if (r1.yr + r1.heightr < r2.yr + r2.heightr)
-          ymin = r1.yr + r1.heightr;
-
-        for (int i = ymax; i < ymin; i++) {
-          for (int j = r1.xr + r1.widthr; j < r2.xr; j++) {
-            this.map[i][j] = -1;
-          }
-        } 
-      } else if (dir == "left") {
-          
       }
     }
   }
@@ -270,7 +242,7 @@ class Level {
     }
 
     // Вот эта херня в теории должна рисовать проходы между комнатами, но поа не рисует
-    //this.build_ends(rnd);
+    this.build_ends(rnd);
     this.print("data.txt");
   }
 }
@@ -279,8 +251,8 @@ class MainClass {
   public static void Main (string[] args) {
     // Скрипт пишет поле в файл "data.txt"
     int[][] size = new int[][] {
-      new int[] { 100, 120 }, // Пределы для ширины
-      new int[] { 100, 120 }, // Пределы для высоты
+      new int[] { 100, 100 }, // Пределы для ширины
+      new int[] { 100, 100 }, // Пределы для высоты
     };
     Level lvl = new Level(size[0], size[1]);
     lvl.generate(5, 100); // Глубина дерева или я хуй знает как это называется и минимальные размеры комнаты (пока не работает)
